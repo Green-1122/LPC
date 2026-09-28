@@ -1,19 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Middleware\AuthMiddleware;
 use App\Models\TradeModel;
+use App\Models\AccountModel;
 
 final class TradeController extends Controller
 {
     public function index(): void
     {
         AuthMiddleware::requireAuth();
+        $userId = (int) $_SESSION['user']['id'];
         $this->render('trading/index', [
-            'trades' => (new TradeModel())->listByUser((int) $_SESSION['user']['id']),
+            'trades' => (new TradeModel())->listByUser($userId),
             'strategies' => TradeModel::STRATEGIES,
+            'bankAccounts' => (new AccountModel())->getByUser($userId),
         ], 'app');
     }
 
@@ -50,8 +55,33 @@ final class TradeController extends Controller
     {
         AuthMiddleware::requireAuth();
         validate_csrf();
-        $closed = (new TradeModel())->closeOwnedTrade((int) $_SESSION['user']['id'], (int) ($_POST['trade_id'] ?? 0));
-        flash($closed ? 'success' : 'error', $closed ? 'Paper trade closed.' : 'Trade was not found or is already closed.');
+
+        try {
+            $userId = (int) $_SESSION['user']['id'];
+            $tradeId = (int) ($_POST['trade_id'] ?? 0);
+            $exitPrice = !empty($_POST['exit_price']) ? (float) $_POST['exit_price'] : null;
+            $accountId = !empty($_POST['account_id']) ? (int) $_POST['account_id'] : null;
+
+            if ($accountId !== null) {
+                $accountModel = new AccountModel();
+                $account = $accountModel->findOwned($userId, $accountId);
+                if (!$account) {
+                    throw new \RuntimeException('Settlement account not found.');
+                }
+            }
+
+            $closed = (new TradeModel())->closeOwnedTrade(
+                $userId,
+                $tradeId,
+                $accountId,
+                $exitPrice
+            );
+            flash($closed ? 'success' : 'error',
+                $closed ? 'Paper trade closed and settled.' : 'Trade was not found or is already closed.');
+        } catch (\Throwable $exception) {
+            flash('error', $exception->getMessage());
+        }
+
         redirect('/trade');
     }
 }
