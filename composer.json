@@ -1,0 +1,28 @@
+{
+  "name": "green-1122/lpc",
+  "description": "Hana-Eunhaeng: Production-grade fintech online banking platform",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.2 || ^8.3",
+    "phpmailer/phpmailer": "^6.9",
+    "tecnickcom/tcpdf": "^6.8"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^1.10"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Core\\": "core/",
+      "Models\\": "models/",
+      "Controllers\\": "controllers/",
+      "Helpers\\": "helpers/",
+      "Middleware\\": "middleware/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
